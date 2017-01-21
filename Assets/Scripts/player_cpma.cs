@@ -441,7 +441,7 @@ public class player_cpma : MonoBehaviour
     /// </summary>
     private void PlayJumpSound()
     {
-        // Don't play a new sound while the last hasn't finished
+
         var source = GetComponent<AudioSource>();
 
         if (source.isPlaying)
