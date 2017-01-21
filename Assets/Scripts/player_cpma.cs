@@ -6,7 +6,6 @@
 **/
 
 using UnityEngine;
-using System.Linq;
 
 public class player_cpma : MonoBehaviour
 {
@@ -34,33 +33,29 @@ public class player_cpma : MonoBehaviour
     [SerializeField]
     Transform playerView;  // Must be a camera
 
-    float xMouseSensitivity = 10.0f;
-    float yMouseSensitivity = 10.0f;
+    float xMouseSensitivity = 3.0f;
+    float yMouseSensitivity = 3.0f;
 
     /* Frame occuring factors */
     float gravity = 20.0f;
-    float friction = 50f;  // Ground friction
+    float friction = 10.6f;  // Ground friction
 
     /* Movement stuff */
-    float moveSpeed = 50.0f;  // Ground move speed
-    float runAcceleration = 14f;   // Ground accel
-    float runDeacceleration = 10f;   // Deacceleration that occurs when running on the ground
+    float moveSpeed = 10.5f;  // Ground move speed
+    float runAcceleration =  150f;   // Ground accel
+    float runDeacceleration = 50f;   // Deacceleration that occurs when running on the ground
 
-    float airAcceleration = 2.0f;  // Air accel
-    float airDeacceleration = 2.0f;    // Deacceleration experienced when opposite strafing
-    float airControl = 0.3f;  // How precise air control is
+    float airAcceleration = 3.0f;  // Air accel
+    float airDeacceleration = 2f;    // Deacceleration experienced when opposite strafing
+    float airControl = 10.9f;  // How precise air control is
 
-    float sideStrafeAcceleration = 50f;   // How fast acceleration occurs to get up to sideStrafeSpeed when side strafing
+    float sideStrafeAcceleration = 5f;   // How fast acceleration occurs to get up to sideStrafeSpeed when side strafing
     float sideStrafeSpeed = 1f;    // What the max speed to generate when side strafing
 
-    float jumpSpeed = 8.0f;  // The speed at which the character's up axis gains when hitting jump
-    float moveScale = 1.0f;
-
-    /* FPS Stuff */
-    float fpsDisplayRate = 4.0f;  // 4 updates per sec.
+    float jumpSpeed = 7.0f;  // The speed at which the character's up axis gains when hitting jump
+    float moveScale = 1f;
 
     private int frameCount = 0;
-    private float dt = 0.0f;
 
     [SerializeField]
     private CharacterController controller;
@@ -70,7 +65,6 @@ public class player_cpma : MonoBehaviour
     private float rotY = 0.0f;
 
     private Vector3 playerVelocity = Vector3.zero;
-    private float playerTopVelocity = 0.0f;
 
     // Q3: players can queue the next jump just before he hits the ground
     private bool wishJump = false;
@@ -97,43 +91,23 @@ public class player_cpma : MonoBehaviour
         var instanciated = Instantiate(jumpSoundsObj, Vector3.zero, Quaternion.identity);
         instanciated.parent = this.transform;
         jumpSoundsProvider = instanciated.GetComponent<JumpSoundsProvider>();
-        Debug.Log(jumpSoundsProvider);
-        Debug.Assert(jumpSoundsProvider != null);
     }
 
     private void FixedUpdate()
     {
         /* Do FPS calculation */
         frameCount++;
-        dt += Time.deltaTime;
 
-        if (dt > 1.0f / fpsDisplayRate)
-        {
-            frameCount = 0;
-            dt -= 1.0f / fpsDisplayRate;
-        }
-
-        /* Ensure that the cursor is locked into the screen */
-        if (Cursor.lockState != CursorLockMode.Locked)
-        {
-            if (Input.GetMouseButtonDown(0))
-            {
-                Cursor.visible = false;
-                Cursor.lockState = CursorLockMode.Locked;
-            }
-        }
-        else
-        {
-            if (Input.GetKey(KeyCode.Escape))
-            {
-                Cursor.visible = true;
-                Cursor.lockState = CursorLockMode.None;
-            }
-        }
+        HandleCursor();
 
         /* Camera rotation stuff, mouse controls this shit */
         rotX -= Input.GetAxis("Mouse Y") * xMouseSensitivity;
         rotY += Input.GetAxis("Mouse X") * yMouseSensitivity;
+
+        var oldVelocity = playerVelocity;
+        var actualVelocity = controller.velocity;
+
+        playerVelocity = actualVelocity;
 
         // Clamp the X rotation
         if (rotX < -90)
@@ -161,22 +135,29 @@ public class player_cpma : MonoBehaviour
         }
 
         // Move the controller
-        controller.Move(playerVelocity * Time.deltaTime);
-
-        /* Calculate top velocity */
-        var udp = playerVelocity;
-        udp.y = 0.0f;
-
-        if (playerVelocity.magnitude > playerTopVelocity)
-        {
-            playerTopVelocity = playerVelocity.magnitude;
-        }
+        controller.Move(playerVelocity * Time.fixedDeltaTime);
     }
 
-
-    /*******************************************************************************************************\
-    |* MOVEMENT
-    \*******************************************************************************************************/
+    private static void HandleCursor()
+    {
+        /* Ensure that the cursor is locked into the screen */
+        if (Cursor.lockState != CursorLockMode.Locked)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                Cursor.visible = false;
+                Cursor.lockState = CursorLockMode.Locked;
+            }
+        }
+        else
+        {
+            if (Input.GetKey(KeyCode.Escape))
+            {
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+            }
+        }
+    }
 
     /// <summary>
     /// Sets the movement direction based on player input
@@ -218,7 +199,7 @@ public class player_cpma : MonoBehaviour
         wishdir = transform.TransformDirection(wishdir);
 
         var wishspeed = wishdir.magnitude;
-        wishspeed *= moveSpeed;
+        //wishspeed *= moveSpeed;
 
         wishdir.Normalize();
         wishspeed *= scale;
@@ -250,12 +231,9 @@ public class player_cpma : MonoBehaviour
         {
             AirControl(wishdir, wishspeed2);
         }
-        // !CPM: Aircontrol
 
         // Apply gravity
-        playerVelocity.y -= gravity * Time.deltaTime;
-
-        // LEGACY MOVEMENT SEE BOTTOM
+        playerVelocity.y -= gravity * Time.fixedDeltaTime;
     }
 
     /// <summary>
@@ -287,7 +265,7 @@ public class player_cpma : MonoBehaviour
 
         dot = Vector3.Dot(playerVelocity, wishdir);
         k = 32;
-        k *= airControl * dot * dot * Time.deltaTime;
+        k *= airControl * dot * dot * Time.fixedDeltaTime;
 
         // Change direction while slowing down
         if (dot > 0)
@@ -313,18 +291,6 @@ public class player_cpma : MonoBehaviour
         Vector3 wishdir;
         //Vector3 wishvel;
 
-        // Do not apply friction if the player is queueing up the next jump
-        if (!wishJump)
-        {
-            ApplyFriction(1.0f);
-        }
-        else
-        {
-            ApplyFriction(0f);
-        }
-
-        var scale = CmdScale();
-
         SetMovementDir();
 
         wishdir = new Vector3(cmd.rightmove, 0, cmd.forwardmove);
@@ -335,6 +301,16 @@ public class player_cpma : MonoBehaviour
         wishspeed *= moveSpeed;
 
         Accelerate(wishdir, wishspeed, runAcceleration);
+
+        // Do not apply friction if the player is queueing up the next jump
+        if (!wishJump)
+        {
+            ApplyFriction(1.0f);
+        }
+        else
+        {
+            ApplyFriction(0f);
+        }
 
         // Reset the gravity velocity
         playerVelocity.y = 0;
@@ -353,8 +329,8 @@ public class player_cpma : MonoBehaviour
     /// <param name="t"></param>
     private void ApplyFriction(float t)
     {
-        Vector3 vec = playerVelocity; // Equivalent to: VectorCopy();
-        ////float vel;
+        Vector3 vec = playerVelocity;
+
         float speed;
         float newspeed;
         float control;
@@ -367,8 +343,8 @@ public class player_cpma : MonoBehaviour
         /* Only if the player is on the ground then apply friction */
         if (controller.isGrounded)
         {
-            control = speed < runDeacceleration ? runDeacceleration : speed;
-            drop = control * friction * Time.deltaTime * t;
+            //control = speed < runDeacceleration ? runDeacceleration : speed;
+            drop = runDeacceleration * friction * Time.fixedDeltaTime * t;
         }
 
         newspeed = speed - drop;
@@ -404,7 +380,7 @@ public class player_cpma : MonoBehaviour
             return;
         }
 
-        accelspeed = accel * Time.deltaTime * wishspeed;
+        accelspeed = accel * Time.fixedDeltaTime * wishspeed;
 
         if (accelspeed > addspeed)
         {
@@ -448,6 +424,16 @@ public class player_cpma : MonoBehaviour
         scale = moveSpeed * max / (moveScale * total);
 
         return scale;
+    }
+
+    void OnGUI()
+    {
+        var ups = controller.velocity;
+        GUI.Label(new Rect(0, 15, 400, 100), "Speed: " + Mathf.Round(ups.magnitude * 100) / 100 + "ups");
+        ups.y = 0;
+        GUI.Label(new Rect(0, 30, 400, 100), "Horizontal Speed: " + Mathf.Round(ups.magnitude * 100) / 100 + "ups");
+        var isGroundedMsg = controller.isGrounded ? "YES" : "NO";
+        GUI.Label(new Rect(0, 45, 400, 100), "Is Grounded: " + isGroundedMsg);
     }
 
     /// <summary>

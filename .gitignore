@@ -30,3 +30,15 @@ sysinfo.txt
 # Builds
 *.apk
 *.unitypackage
+
+*.pk3
+Assets/Scripts/uQuake/
+Assets/Scripts/uQuake.meta
+Assets/baseq3.meta
+Assets/baseq3/
+Assets/Scenes/empty.unity
+Assets/Scenes/empty.unity.meta
+Assets/Plugins.meta
+Assets/Plugins/
+Assets/Maps/
+Assets/Maps.meta
